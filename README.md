@@ -1,6 +1,4 @@
-Here’s a **properly formatted** `README.md` file that you can directly paste into your GitHub repository:
 
-```md
 # ChuckleChain - Meme Sharing Platform
 
 ChuckleChain is a modern, interactive meme-sharing social media platform inspired by Instagram and Facebook but with a unique, sleek design. This project is the frontend only, built with **React and Tailwind CSS** to ensure a seamless user experience.
