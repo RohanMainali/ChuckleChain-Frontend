@@ -4,7 +4,7 @@
 ChuckleChain is a modern, interactive meme-sharing social media platform inspired by Instagram and Facebook but with a unique, sleek design. This project is the frontend only, built with **React and Tailwind CSS** to ensure a seamless user experience.
 
 ## Features
-- **User Authentication (Mocked)** – Sign up, log in, and edit profiles.
+- **User Authentication** – Sign up, log in, and edit profiles.
 - **Posting System** – Users can create memes with both text and image, embedding captions directly into the uploaded image.
 - **Feed/Dashboard** – View posts from followed users, with functional likes, comments, and image previews.
 - **Messaging System** – Unique chat UI for conversations with followed users.
