@@ -28,6 +28,7 @@ Ensure you have **Node.js** and **npm** installed on your system. You can downlo
 2. **Install Dependencies:**
    ```sh
    npm install
+   npm install --legacy-peer-deps
    ```
 
 3. **Start the Development Server:**
