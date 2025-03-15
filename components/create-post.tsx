@@ -12,21 +12,39 @@ import { ImageIcon, X, AlertCircle } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import type { Post } from "@/lib/types"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
 interface CreatePostProps {
   onPostCreated: (post: Post) => void
 }
 
+// Categories for memes
+const categories = [
+  { name: "Entertainment", value: "entertainment" },
+  { name: "Sports", value: "sports" },
+  { name: "Gaming", value: "gaming" },
+  { name: "Technology", value: "technology" },
+  { name: "Fashion", value: "fashion" },
+  { name: "Music", value: "music" },
+  { name: "TV Shows", value: "tv" },
+  { name: "Other", value: "other" },
+]
+
 export function CreatePost({ onPostCreated }: CreatePostProps) {
   const { user } = useAuth()
-  const [text, setText] = useState("")
+  const [caption, setCaption] = useState("")
   const [image, setImage] = useState<string | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [category, setCategory] = useState<string | null>(null)
+  const [textPosition, setTextPosition] = useState<"top" | "bottom">("top")
+  const [captionPlacement, setCaptionPlacement] = useState<"on-image" | "whitespace">("on-image")
 
-  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setText(e.target.value)
+  const handleCaptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setCaption(e.target.value)
     if (error) setError(null)
   }
 
@@ -55,7 +73,7 @@ export function CreatePost({ onPostCreated }: CreatePostProps) {
   }
 
   const handleCreatePost = async () => {
-    if (!text) {
+    if (!caption) {
       setError("Please add a caption for your meme")
       return
     }
@@ -69,8 +87,26 @@ export function CreatePost({ onPostCreated }: CreatePostProps) {
     setError(null)
 
     try {
-      // In a real app, we would upload the image and create the post on the server
-      // For demo purposes, we'll just create a new post object
+      let memeText
+      if (captionPlacement === "on-image") {
+        memeText = {
+          id: uuidv4(),
+          text: caption,
+          x: 50,
+          y: textPosition === "top" ? 10 : 90,
+          fontSize: 32,
+          fontFamily: "Impact, sans-serif",
+          color: "#FFFFFF",
+          backgroundColor: "transparent",
+          textAlign: "center",
+          bold: false,
+          italic: false,
+          underline: false,
+          uppercase: true,
+          outline: true,
+        }
+      }
+
       const newPost: Post = {
         id: uuidv4(),
         user: {
@@ -78,17 +114,21 @@ export function CreatePost({ onPostCreated }: CreatePostProps) {
           username: user?.username || "",
           profilePicture: user?.profilePicture || "",
         },
-        text,
+        text: caption,
         image,
         createdAt: new Date().toISOString(),
         likes: 0,
         isLiked: false,
         comments: [],
+        category: category || undefined,
+        memeTexts: captionPlacement === "on-image" ? [memeText] : undefined,
+        captionPlacement: captionPlacement,
       }
 
       onPostCreated(newPost)
-      setText("")
+      setCaption("")
       setImage(null)
+      setCategory(null)
       if (fileInputRef.current) {
         fileInputRef.current.value = ""
       }
@@ -111,26 +151,124 @@ export function CreatePost({ onPostCreated }: CreatePostProps) {
           <div className="flex-1">
             <Textarea
               placeholder="What's on your mind?"
-              value={text}
-              onChange={handleTextChange}
+              value={caption}
+              onChange={handleCaptionChange}
               className="min-h-[80px] resize-none border-none p-0 focus-visible:ring-0"
             />
 
             {image && (
-              <div className="relative mt-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-2 top-2 rounded-full bg-background/80"
-                  onClick={handleRemoveImage}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-                <div className="relative">
-                  <div className="absolute inset-x-0 top-0 bg-background/90 p-3 text-center font-medium">
-                    {text || "Add your caption here"}
+              <div className="mt-4">
+                <div className="flex flex-col gap-4">
+                  <div className="relative">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-2 top-2 z-10 rounded-full bg-background/80"
+                      onClick={handleRemoveImage}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+
+                    <div className="relative">
+                      {captionPlacement === "whitespace" ? (
+                        <div className="flex flex-col overflow-hidden rounded-md">
+                          <div className="bg-white p-3 text-center border-b">
+                            <div
+                              className="font-bold text-black uppercase tracking-wide"
+                              style={{ fontFamily: "'Impact', sans-serif" }}
+                            >
+                              {caption || "ADD YOUR CAPTION HERE"}
+                            </div>
+                          </div>
+                          <img
+                            src={image || "/placeholder.svg?height=400&width=600"}
+                            alt="Meme template"
+                            className="w-full"
+                          />
+                        </div>
+                      ) : (
+                        <>
+                          <img
+                            src={image || "/placeholder.svg?height=400&width=600"}
+                            alt="Meme template"
+                            className="w-full rounded-md"
+                          />
+                          <div
+                            className="absolute left-1/2 transform -translate-x-1/2 text-center select-none"
+                            style={{
+                              top: textPosition === "top" ? "10%" : "90%",
+                              fontFamily: "Impact, sans-serif",
+                              fontSize: "32px",
+                              color: "#FFFFFF",
+                              textTransform: "uppercase",
+                              textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+                              maxWidth: "80%",
+                              wordWrap: "break-word",
+                            }}
+                          >
+                            {caption || (textPosition === "top" ? "TOP TEXT" : "BOTTOM TEXT")}
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <img src={image || "/placeholder.svg"} alt="Post preview" className="rounded-md object-cover pt-12" />
+
+                  {/* Caption placement control */}
+                  <div className="border rounded-md p-4">
+                    <Label className="mb-2 block">Caption Style</Label>
+                    <RadioGroup
+                      value={captionPlacement}
+                      onValueChange={(value) => setCaptionPlacement(value as "on-image" | "whitespace")}
+                      className="flex gap-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="on-image" id="on-image" />
+                        <Label htmlFor="on-image">Overlay Text</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="whitespace" id="whitespace" />
+                        <Label htmlFor="whitespace">White Header</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
+                  {/* Only show text position control when caption is on the image */}
+                  {captionPlacement === "on-image" && (
+                    <div className="border rounded-md p-4">
+                      <Label className="mb-2 block">Text Position</Label>
+                      <RadioGroup
+                        value={textPosition}
+                        onValueChange={(value) => setTextPosition(value as "top" | "bottom")}
+                        className="flex gap-4"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="top" id="top" />
+                          <Label htmlFor="top">Top</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="bottom" id="bottom" />
+                          <Label htmlFor="bottom">Bottom</Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+                  )}
+                </div>
+
+                {/* Category selection */}
+                <div className="mt-4">
+                  <Label htmlFor="category">Category (optional)</Label>
+                  <Select value={category || ""} onValueChange={setCategory}>
+                    <SelectTrigger id="category">
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.value} value={cat.value}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             )}

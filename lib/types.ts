@@ -14,6 +14,23 @@ export interface UserProfile extends User {
   posts: Post[]
 }
 
+export interface MemeText {
+  id: string
+  text: string
+  x: number
+  y: number
+  fontSize: number
+  fontFamily: string
+  color: string
+  backgroundColor: string
+  textAlign: "left" | "center" | "right"
+  bold: boolean
+  italic: boolean
+  underline: boolean
+  uppercase: boolean
+  outline: boolean
+}
+
 export interface Post {
   id: string
   user: {
@@ -31,6 +48,9 @@ export interface Post {
     user: string
     text: string
   }[]
+  category?: string
+  memeTexts?: MemeText[]
+  captionPlacement?: "on-image" | "whitespace"
 }
 
 export interface Conversation {

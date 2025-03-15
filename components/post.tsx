@@ -5,7 +5,7 @@ import type React from "react"
 import { useState, useRef } from "react"
 import { formatDistanceToNow } from "date-fns"
 import { v4 as uuidv4 } from "uuid"
-import { Heart, MessageCircle, MoreHorizontal, Share2, Trash2 } from "lucide-react"
+import { Heart, MessageCircle, MoreHorizontal, Share2, Trash2, Tag } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardFooter, CardHeader } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -14,7 +14,8 @@ import { useAuth } from "@/components/auth-provider"
 import type { Post as PostType } from "@/lib/types"
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 
 interface PostProps {
   post: PostType
@@ -59,6 +60,64 @@ export function Post({ post, onDelete, onLike, onComment }: PostProps) {
     setComment("")
   }
 
+  // Render meme with custom text if available
+  const renderMemeContent = () => {
+    if (post.captionPlacement === "whitespace") {
+      return (
+        <div className="relative cursor-pointer overflow-hidden rounded-md">
+          <div className="bg-white p-3 text-center border-b">
+            <div
+              className="font-bold text-black uppercase tracking-wide"
+              style={{ fontFamily: "'Impact', sans-serif" }}
+            >
+              {post.text}
+            </div>
+          </div>
+          <img src={post.image || "/placeholder.svg?height=400&width=600"} alt={post.text} className="w-full" />
+        </div>
+      )
+    } else if (!post.memeTexts || post.memeTexts.length === 0) {
+      return (
+        <div className="relative cursor-pointer">
+          <div className="absolute inset-x-0 top-0 bg-background/90 p-3 text-center font-medium">{post.text}</div>
+          <img src={post.image || "/placeholder.svg?height=400&width=600"} alt={post.text} className="w-full pt-12" />
+        </div>
+      )
+    }
+
+    return (
+      <div className="relative cursor-pointer">
+        <img src={post.image || "/placeholder.svg?height=400&width=600"} alt={post.text} className="w-full" />
+        {post.memeTexts.map((text) => (
+          <div
+            key={text.id}
+            className="absolute select-none"
+            style={{
+              left: `${text.x}%`,
+              top: `${text.y}%`,
+              fontFamily: text.fontFamily,
+              fontSize: `${text.fontSize}px`,
+              color: text.color,
+              backgroundColor: text.backgroundColor !== "transparent" ? text.backgroundColor : "transparent",
+              textAlign: text.textAlign,
+              fontWeight: text.bold ? "bold" : "normal",
+              fontStyle: text.italic ? "italic" : "normal",
+              textDecoration: text.underline ? "underline" : "none",
+              textTransform: text.uppercase ? "uppercase" : "none",
+              textShadow: text.outline ? "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000" : "none",
+              padding: "0.25rem",
+              maxWidth: "80%",
+              wordWrap: "break-word",
+              transform: "translate(-50%, -50%)",
+            }}
+          >
+            {text.text}
+          </div>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <Card className="overflow-hidden">
       <CardHeader className="flex flex-row items-center gap-3 space-y-0 p-4">
@@ -72,6 +131,13 @@ export function Post({ post, onDelete, onLike, onComment }: PostProps) {
             {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
           </div>
         </div>
+
+        {post.category && (
+          <Badge variant="outline" className="mr-2 flex items-center gap-1">
+            <Tag className="h-3 w-3" />
+            {post.category}
+          </Badge>
+        )}
 
         {isCurrentUserPost && (
           <DropdownMenu>
@@ -92,107 +158,100 @@ export function Post({ post, onDelete, onLike, onComment }: PostProps) {
       </CardHeader>
 
       <Dialog>
-        <DialogTrigger asChild>
-          <div className="relative cursor-pointer">
-            <div className="absolute inset-x-0 top-0 bg-background/90 p-3 text-center font-medium">{post.text}</div>
-            <img src={post.image || "/placeholder.svg"} alt={post.text} className="w-full pt-12" />
-          </div>
-        </DialogTrigger>
-        <DialogContent className="max-w-3xl p-0">
-          <img src={post.image || "/placeholder.svg"} alt={post.text} className="w-full" />
-        </DialogContent>
+        <DialogTrigger asChild>{renderMemeContent()}</DialogTrigger>
+        <DialogContent className="max-w-3xl p-0">{renderMemeContent()}</DialogContent>
       </Dialog>
 
       <CardFooter className="flex flex-col p-0">
-        {/* Engagement section - redesigned to be less compact */}
-        <div className="flex items-center justify-between border-t p-4">
-          <div className="flex gap-6">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={`flex items-center gap-2 ${post.isLiked ? "text-red-500" : ""}`}
-                    onClick={handleLike}
-                  >
-                    <Heart className={`h-5 w-5 ${post.isLiked ? "fill-current text-red-500" : ""}`} />
-                    <span>{post.likes > 0 ? post.likes : ""}</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{post.isLiked ? "Unlike" : "Like"}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={handleCommentClick}>
-                    <MessageCircle className="h-5 w-5" />
-                    <span>{post.comments.length > 0 ? post.comments.length : ""}</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Comment</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                    <Share2 className="h-5 w-5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Share</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+        {/* Likes and comments count - clean modern design */}
+        {(post.likes > 0 || post.comments.length > 0) && (
+          <div className="px-6 py-3 border-t">
+            <div className="flex items-center gap-6">
+              {post.likes > 0 && (
+                <div className="text-sm text-muted-foreground">
+                  {post.likes} {post.likes === 1 ? "like" : "likes"}
+                </div>
+              )}
+              {post.comments.length > 0 && (
+                <button
+                  className="text-sm text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowComments(!showComments)}
+                >
+                  {post.comments.length} {post.comments.length === 1 ? "comment" : "comments"}
+                </button>
+              )}
+            </div>
           </div>
+        )}
+
+        {/* Action buttons - modern minimal design */}
+        <div className="grid grid-cols-3 border-t">
+          <Button
+            variant="ghost"
+            className={cn(
+              "flex items-center justify-center gap-2 rounded-none py-3 h-auto",
+              post.isLiked ? "text-primary" : "",
+            )}
+            onClick={handleLike}
+          >
+            <Heart className={cn("h-5 w-5", post.isLiked && "fill-current")} />
+            <span className="font-normal">Like</span>
+          </Button>
+
+          <Button
+            variant="ghost"
+            className="flex items-center justify-center gap-2 rounded-none py-3 h-auto"
+            onClick={handleCommentClick}
+          >
+            <MessageCircle className="h-5 w-5" />
+            <span className="font-normal">Comment</span>
+          </Button>
+
+          <Button variant="ghost" className="flex items-center justify-center gap-2 rounded-none py-3 h-auto">
+            <Share2 className="h-5 w-5" />
+            <span className="font-normal">Share</span>
+          </Button>
         </div>
 
-        {/* Comments section - redesigned to be less compact */}
-        {(showComments || post.comments.length > 0) && (
-          <div className="border-t px-6 py-4">
+        {/* Comments section - clean minimal design */}
+        {showComments && (
+          <div className="border-t p-6 space-y-6">
             {post.comments.length > 0 && (
-              <div className="mb-4 space-y-3">
-                <h4 className="font-medium text-sm text-muted-foreground mb-2">
-                  {post.comments.length} {post.comments.length === 1 ? "Comment" : "Comments"}
-                </h4>
+              <div className="space-y-4">
                 {post.comments.map((comment) => (
-                  <div key={comment.id} className="flex gap-3 items-start">
+                  <div key={comment.id} className="flex gap-3">
                     <Avatar className="h-8 w-8">
                       <AvatarFallback>{comment.user.charAt(0).toUpperCase()}</AvatarFallback>
                     </Avatar>
-                    <div className="bg-muted rounded-lg px-3 py-2 flex-1">
-                      <div className="font-semibold text-sm">{comment.user}</div>
-                      <div className="text-sm mt-1">{comment.text}</div>
+                    <div className="flex-1">
+                      <div className="bg-muted rounded-xl px-4 py-2.5">
+                        <div className="font-medium text-sm">{comment.user}</div>
+                        <div className="mt-1">{comment.text}</div>
+                      </div>
+                      <div className="flex gap-4 mt-1.5 ml-1">
+                        <button className="text-xs text-muted-foreground hover:text-foreground">Like</button>
+                        <button className="text-xs text-muted-foreground hover:text-foreground">Reply</button>
+                        <span className="text-xs text-muted-foreground">Just now</span>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             )}
 
-            <form onSubmit={handleAddComment} className="flex gap-3 mt-3">
+            <form onSubmit={handleAddComment} className="flex gap-3">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={user?.profilePicture} alt={user?.username} />
                 <AvatarFallback>{user?.username.charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>
-              <div className="flex-1 flex gap-2">
+              <div className="flex-1">
                 <Input
                   ref={commentInputRef}
-                  placeholder="Add a comment..."
+                  placeholder="Write a comment..."
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
-                  className="flex-1"
+                  className="bg-muted border-0 focus-visible:ring-1"
                 />
-                <Button type="submit" size="sm" disabled={!comment.trim()}>
-                  Post
-                </Button>
               </div>
             </form>
           </div>
