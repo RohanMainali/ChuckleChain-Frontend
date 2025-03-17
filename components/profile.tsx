@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -9,6 +9,7 @@ import { Edit, Grid3X3, Settings } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { Post } from "@/components/post"
 import { EditProfileDialog } from "@/components/edit-profile-dialog"
+import { SettingsDialog } from "@/components/settings-dialog"
 import type { UserProfile, Post as PostType } from "@/lib/types"
 
 interface ProfileProps {
@@ -16,13 +17,26 @@ interface ProfileProps {
 }
 
 export function Profile({ profile }: ProfileProps) {
-  const { user } = useAuth()
+  const { user, updateUser } = useAuth()
   const [isFollowing, setIsFollowing] = useState(profile.isFollowing)
   const [followerCount, setFollowerCount] = useState(profile.followers)
   const [posts, setPosts] = useState<PostType[]>(profile.posts)
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [currentProfile, setCurrentProfile] = useState<UserProfile>(profile)
 
   const isCurrentUser = user?.id === profile.id
+
+  // Update profile when user changes (for username updates from settings)
+  useEffect(() => {
+    if (isCurrentUser && user) {
+      setCurrentProfile((prev) => ({
+        ...prev,
+        username: user.username,
+        profilePicture: user.profilePicture,
+      }))
+    }
+  }, [user, isCurrentUser])
 
   const handleFollow = () => {
     setIsFollowing(!isFollowing)
@@ -63,8 +77,20 @@ export function Profile({ profile }: ProfileProps) {
   }
 
   const handleProfileUpdate = (updatedProfile: Partial<UserProfile>) => {
-    // In a real app, we would update the profile on the server
-    console.log("Profile updated:", updatedProfile)
+    // Update the profile
+    setCurrentProfile((prev) => ({
+      ...prev,
+      ...updatedProfile,
+    }))
+
+    // If this is the current user, also update the auth context
+    if (isCurrentUser && user) {
+      updateUser({
+        username: updatedProfile.username || user.username,
+        profilePicture: updatedProfile.profilePicture || user.profilePicture,
+      })
+    }
+
     setIsEditProfileOpen(false)
   }
 
@@ -74,13 +100,13 @@ export function Profile({ profile }: ProfileProps) {
         <CardContent className="p-6">
           <div className="flex flex-col items-center gap-6 md:flex-row md:items-start">
             <Avatar className="h-24 w-24 md:h-32 md:w-32">
-              <AvatarImage src={profile.profilePicture} alt={profile.username} />
-              <AvatarFallback className="text-2xl">{profile.username.charAt(0).toUpperCase()}</AvatarFallback>
+              <AvatarImage src={currentProfile.profilePicture} alt={currentProfile.username} />
+              <AvatarFallback className="text-2xl">{currentProfile.username.charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
 
             <div className="flex flex-1 flex-col items-center text-center md:items-start md:text-left">
               <div className="flex flex-wrap items-center gap-4">
-                <h1 className="text-2xl font-bold">{profile.username}</h1>
+                <h1 className="text-2xl font-bold">{currentProfile.username}</h1>
 
                 {isCurrentUser ? (
                   <div className="flex gap-2">
@@ -88,7 +114,7 @@ export function Profile({ profile }: ProfileProps) {
                       <Edit className="mr-2 h-4 w-4" />
                       Edit Profile
                     </Button>
-                    <Button variant="outline" size="icon">
+                    <Button variant="outline" size="icon" onClick={() => setIsSettingsOpen(true)}>
                       <Settings className="h-4 w-4" />
                     </Button>
                   </div>
@@ -109,22 +135,22 @@ export function Profile({ profile }: ProfileProps) {
                   <div className="text-sm text-muted-foreground">Followers</div>
                 </div>
                 <div className="text-center">
-                  <div className="font-bold">{profile.following}</div>
+                  <div className="font-bold">{currentProfile.following}</div>
                   <div className="text-sm text-muted-foreground">Following</div>
                 </div>
               </div>
 
               <div className="mt-4">
-                <div className="font-bold">{profile.fullName}</div>
-                <p className="mt-1 max-w-md">{profile.bio}</p>
-                {profile.website && (
+                <div className="font-bold">{currentProfile.fullName}</div>
+                <p className="mt-1 max-w-md">{currentProfile.bio}</p>
+                {currentProfile.website && (
                   <a
-                    href={profile.website}
+                    href={currentProfile.website}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mt-1 block text-primary hover:underline"
                   >
-                    {profile.website.replace(/^https?:\/\//, "")}
+                    {currentProfile.website.replace(/^https?:\/\//, "")}
                   </a>
                 )}
               </div>
@@ -147,7 +173,7 @@ export function Profile({ profile }: ProfileProps) {
               <p className="text-muted-foreground">
                 {isCurrentUser
                   ? "Create your first meme to get started."
-                  : `${profile.username} hasn't posted any memes yet.`}
+                  : `${currentProfile.username} hasn't posted any memes yet.`}
               </p>
             </div>
           ) : (
@@ -167,11 +193,12 @@ export function Profile({ profile }: ProfileProps) {
       </Tabs>
 
       <EditProfileDialog
-        profile={profile}
+        profile={currentProfile}
         open={isEditProfileOpen}
         onOpenChange={setIsEditProfileOpen}
         onUpdate={handleProfileUpdate}
       />
+      <SettingsDialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen} />
     </div>
   )
 }

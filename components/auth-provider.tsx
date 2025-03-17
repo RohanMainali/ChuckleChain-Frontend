@@ -12,6 +12,7 @@ type AuthContextType = {
   signup: (username: string, email: string, password: string) => Promise<boolean>
   logout: () => void
   isLoading: boolean
+  updateUser: (updates: Partial<User>) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -79,7 +80,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null)
   }
 
-  return <AuthContext.Provider value={{ user, login, signup, logout, isLoading }}>{children}</AuthContext.Provider>
+  const updateUser = (updates: Partial<User>) => {
+    if (user) {
+      setUser({ ...user, ...updates })
+    }
+  }
+
+  return (
+    <AuthContext.Provider value={{ user, login, signup, logout, isLoading, updateUser }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 export function useAuth() {
